@@ -1,9 +1,9 @@
 use proc_macro::TokenStream;
 use quote::ToTokens;
 use std::collections::HashMap;
-use syn::{parse_quote};
-use syn::visit::{self, Visit};
+use syn::parse_quote;
 use syn::spanned::Spanned;
+use syn::visit::{self, Visit};
 
 struct TypePathVisitor {
     generic_type_names: Vec<String>, // 记录所有泛型参数的名字
@@ -16,7 +16,10 @@ impl<'ast> Visit<'ast> for TypePathVisitor {
         if node.path.segments.len() >= 2 {
             let generic_type_name = node.path.segments[0].ident.to_string();
             if self.generic_type_names.contains(&generic_type_name) {
-                self.associated_types.entry(generic_type_name).or_insert(Vec::new()).push(node.clone());
+                self.associated_types
+                    .entry(generic_type_name)
+                    .or_insert(Vec::new())
+                    .push(node.clone());
             }
         }
 
@@ -40,7 +43,12 @@ fn do_expand(st: &syn::DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
 
     if let Some(hatch) = get_struct_escape_hatch(st) {
         generic_data.make_where_clause();
-        generic_data.where_clause.as_mut().unwrap().predicates.push(syn::parse_str(hatch.as_str()).unwrap());
+        generic_data
+            .where_clause
+            .as_mut()
+            .unwrap()
+            .predicates
+            .push(syn::parse_str(hatch.as_str()).unwrap());
     } else {
         // 构建两个列表，一个是PhantomData中使用到的泛型参数，另一个是输入结构体中所有的参数。
         let fields = get_struct_all_fields(st)?;
@@ -60,12 +68,14 @@ fn do_expand(st: &syn::DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
                 let type_param_name = t.ident.to_string();
 
                 if phantom_data_type_param_names.contains(&type_param_name)
-                    && !field_type_names.contains(&type_param_name) {
+                    && !field_type_names.contains(&type_param_name)
+                {
                     continue;
                 }
 
                 if associated_types_map.contains_key(&type_param_name)
-                    && !field_type_names.contains(&type_param_name) {
+                    && !field_type_names.contains(&type_param_name)
+                {
                     continue;
                 }
 
@@ -76,7 +86,12 @@ fn do_expand(st: &syn::DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
         generic_data.make_where_clause();
         for (_, associated_types) in associated_types_map {
             for associated_type in associated_types {
-                generic_data.where_clause.as_mut().unwrap().predicates.push(parse_quote!(#associated_type:std::fmt::Debug));
+                generic_data
+                    .where_clause
+                    .as_mut()
+                    .unwrap()
+                    .predicates
+                    .push(parse_quote!(#associated_type:std::fmt::Debug));
             }
         }
     }
@@ -196,14 +211,19 @@ fn get_field_type_name(field: &syn::Field) -> syn::Result<Option<String>> {
 }
 
 fn get_generic_associated_types(st: &syn::DeriveInput) -> HashMap<String, Vec<syn::TypePath>> {
-    let origin_generic_param_names: Vec<String> = st.generics.params.iter().filter_map(|f| {
-        if let syn::GenericParam::Type(ty) = f {
-            return Some(ty.ident.to_string());
-        }
-        return None;
-    }).collect();
+    let origin_generic_param_names: Vec<String> = st
+        .generics
+        .params
+        .iter()
+        .filter_map(|f| {
+            if let syn::GenericParam::Type(ty) = f {
+                return Some(ty.ident.to_string());
+            }
+            return None;
+        })
+        .collect();
 
-    let mut visitor = TypePathVisitor{
+    let mut visitor = TypePathVisitor {
         generic_type_names: origin_generic_param_names,
         associated_types: HashMap::new(),
     };
@@ -214,11 +234,30 @@ fn get_generic_associated_types(st: &syn::DeriveInput) -> HashMap<String, Vec<sy
 
 fn get_struct_escape_hatch(st: &syn::DeriveInput) -> Option<String> {
     if let Some(inert_attr) = st.attrs.first() {
-        if inert_attr.meta.path().segments.first().unwrap().ident.to_string() == "debug" {
-            if let Ok(syn::Expr::Assign(syn::ExprAssign{left, right, ..})) = inert_attr.parse_args::<syn::Expr>() {
-                if let syn::Expr::Path(syn::ExprPath{path: syn::Path{segments, ..}, ..}) = *left {
+        if inert_attr
+            .meta
+            .path()
+            .segments
+            .first()
+            .unwrap()
+            .ident
+            .to_string()
+            == "debug"
+        {
+            if let Ok(syn::Expr::Assign(syn::ExprAssign { left, right, .. })) =
+                inert_attr.parse_args::<syn::Expr>()
+            {
+                if let syn::Expr::Path(syn::ExprPath {
+                    path: syn::Path { segments, .. },
+                    ..
+                }) = *left
+                {
                     if segments[0].ident.to_string() == "bound" {
-                        if let syn::Expr::Lit(syn::ExprLit{lit: syn::Lit::Str(str), ..}) = *right {
+                        if let syn::Expr::Lit(syn::ExprLit {
+                            lit: syn::Lit::Str(str),
+                            ..
+                        }) = *right
+                        {
                             return Some(str.value());
                         }
                     }
