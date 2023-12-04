@@ -1,4 +1,5 @@
 use proc_macro::TokenStream;
+use quote::ToTokens;
 use syn::parse::ParseStream;
 
 struct SeqParser {
@@ -61,18 +62,12 @@ impl SeqParser {
                         ret.extend(quote::quote!(#tree_node));
                     }
                 }
-                // proc_macro2::TokenTree::Punct(p) => {
-                //     if p.spacing() != proc_macro2::Spacing::Alone {
-                //         ret.extend(quote::quote!(#tree_node));
-                //     }
-                // }
                 _ => {
                     // 对于标点符号和字面量原封不动的保存
                     ret.extend(quote::quote!(#tree_node));
                 }
             }
         }
-
         ret
     }
 }
@@ -84,7 +79,7 @@ pub fn seq(input: TokenStream) -> TokenStream {
     let mut ret = proc_macro2::TokenStream::new();
     for i in seq_parser.start..seq_parser.end {
         let ts = seq_parser.expand(&seq_parser.body, i);
-        // eprintln!("{}", ts.to_string());
+        eprintln!("{}", ts);
         ret.extend(ts);
     }
 
