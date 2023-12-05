@@ -102,6 +102,7 @@ impl SeqParser {
                     if let Some((group_cur, _, cursor_2)) = cursor_1.group(proc_macro2::Delimiter::Parenthesis) {
                         if let Some((punct_suffix, cursor_3)) = cursor_2.punct() {
                             if punct_suffix.as_char() == '*' {
+                                // 找到了第5题中的 `#(xxxxxxxxxx)*`模式。
                                 for i in self.start..self.end {
                                     let t = self.expand(&group_cur.token_stream(), i);
                                     ret.extend(t);
