@@ -22,6 +22,11 @@ impl syn::parse::Parse for SeqParser {
         let start: syn::LitInt = input.parse()?;
         // 跳过`..`
         input.parse::<syn::Token!(..)>()?;
+        let mut inc = false;
+        if input.peek(syn::Token![=]) {
+            input.parse::<syn::Token![=]>()?;
+            inc = true;
+        }
         // 解析出`32`数字
         let end: syn::LitInt = input.parse()?;
 
@@ -30,12 +35,17 @@ impl syn::parse::Parse for SeqParser {
         syn::braced!(body_buf in input);
         let body: proc_macro2::TokenStream = body_buf.parse()?;
 
-        return Ok(SeqParser{
+        let mut seq_parser = SeqParser{
             variable_ident,
             start: start.base10_parse()?,
             end: end.base10_parse()?,
             body,
-        })
+        };
+        if inc {
+            seq_parser.end += 1;
+        }
+
+        return Ok(seq_parser);
     }
 }
 
