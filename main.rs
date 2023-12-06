@@ -6,38 +6,29 @@
 // To run the code:
 //     $ cargo run
 
-use seq::seq;
+use sorted::sorted;
 
-macro_rules! pass_nproc {
-    ($mac:ident) => {
-        $mac! { 256 }
-    };
+use std::fmt::{self, Display};
+use std::io;
+
+#[sorted]
+pub enum Error {
+    Fmt(fmt::Error),
+    Io(io::Error),
 }
 
-macro_rules! literal_identity_macro {
-    ($nproc:literal) => {
-        $nproc
-    };
-}
+impl Display for Error {
+    #[sorted::check]
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::Error::*;
 
-// Expands to: `const NPROC: usize = 256;`
-const NPROC: usize = pass_nproc!(literal_identity_macro);
-
-struct Proc;
-
-impl Proc {
-    const fn new() -> Self {
-        Proc
+        #[sorted]
+        match self {
+            Io(e) => write!(f, "{}", e),
+            Fmt(e) => write!(f, "{}", e),
+        }
     }
 }
-
-macro_rules! make_procs_array {
-    ($nproc:literal) => {
-        seq!(N in 0..$nproc { [#(Proc::new(),)*] })
-    }
-}
-
-// Expands to: `static PROCS: [Proc; NPROC] = [Proc::new(), ..., Proc::new()];`
-static PROCS: [Proc; NPROC] = pass_nproc!(make_procs_array);
 
 fn main() {}
+
